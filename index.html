@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>File Upload Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body, html {
+      margin: 0;
+      height: 100%;
+      background: linear-gradient(180deg, #f5e8ff 0%, #e0ccff 100%);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    #chatbot {
+      position: fixed;
+      bottom: 80px;
+      right: 30px;
+      width: 350px;
+      max-height: 500px;
+      min-width: 250px;
+      max-width: 600px;
+      min-height: 300px;
+      max-height: 80vh;
+      display: none;
+      flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      border-radius: 15px;
+      background-color: white;
+      overflow: hidden;
+      z-index: 999;
+      resize: both;
+    }
+
+    .chat-header {
+      background-color: #2366ca;
+      color: white;
+      padding: 1rem;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-body {
+      flex: 1;
+      height:400px;
+      padding: 1rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background-color: #fff;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message.bot {
+      max-width: calc(80% - 42px);
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+      max-width: calc(80% - 42px);
+      margin-left: auto;
+    }
+
+    .message-content.bot {
+      background-color: #d4f1f4;
+      color: #2366ca;
+      border-radius: 15px 15px 15px 0;
+      padding: 10px 14px;
+      box-shadow: 0 3px 8px rgba(124, 58, 237, 0.2);
+      position: relative;
+      font-size: 0.875rem;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .message-content.user {
+      background-color: #d1d5db;
+      color: #111827;
+      border-radius: 15px 15px 0 15px;
+      padding: 10px 14px;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+      font-size: 0.875rem;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .avatar {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 18px;
+      user-select: none;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .avatar.bot {
+      background-color: #2366ca;
+    }
+
+    .avatar.user {
+      background-color: #6b7280;
+    }
+
+    .message-content.bot.shimmer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -40%;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+      animation: shimmer 1.8s ease-in-out infinite;
+      border-radius: 15px 15px 15px 0;
+      pointer-events: none;
+    }
+
+    @keyframes shimmer {
+      0% { left: -40%; }
+      100% { left: 100%; }
+    }
+
+    .chat-input {
+      border-top: 1px solid #eee;
+      padding: 10px;
+      background-color: #f9fafb;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-body::-webkit-scrollbar-thumb {
+      background-color: #087abc;
+      border-radius: 5px;
+    }
+
+    #chatbot-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 30px;
+      background-color: #3a64ed;
+      color: white;
+      padding: 14px;
+      border-radius: 50%;
+      font-size: 22px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      z-index: 998;
+    }
+
+    .typing {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0.5rem 0;
+      padding-left: 42px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #2366ca;
+      border-radius: 50%;
+      animation: typing 1.2s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+      }
+      50% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+
+    .upload-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: linear-gradient(90deg, #2366ca, #2366ca);
+      color: white;
+      font-weight: 600;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+      user-select: none;
+    }
+
+    .upload-button:hover {
+      background: linear-gradient(90deg, #075cdb, #07bbd66d);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(9, 98, 162, 0.5);
+    }
+
+    .upload-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    }
+
+    .upload-button svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    @media (max-width: 400px) {
+      #chatbot {
+        width: 90vw;
+        min-width: 90vw;
+        max-width: 90vw;
+        bottom: 1rem;
+        right: 1rem;
+        max-height: 80vh;
+        resize: vertical;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="chatbot">
+    <div class="chat-header">
+      <span>SaraBot</span>
+      <button id="close-btn" class="text-white text-lg font-bold">✕</button>
+    </div>
+    <div class="chat-body" id="chat-messages">
+      <div class="message bot" aria-label="Chatbot message">
+        <div class="avatar bot" aria-hidden="true" title="Chatbot icon">🤖</div>
+        <div class="message-content bot shimmer">
+          Hey there<br />How can I help you today?
+        </div>
+      </div>
+    </div>
+    <div class="chat-input">
+      <input type="file" id="fileInput" multiple class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+      <label for="fileInput" class="upload-button" role="button" aria-label="Upload files">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layers-icon lucide-layers"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
+
+        Upload Files
+      </label>
+    </div>
+  </div>
+
+  <div id="chatbot-toggle">🤖</div>
+
+  <script>
+    const chatbot = document.getElementById('chatbot');
+    const toggleBtn = document.getElementById('chatbot-toggle');
+    const closeBtn = document.getElementById('close-btn');
+    const messagesContainer = document.getElementById('chat-messages');
+    const fileInput = document.getElementById('fileInput');
+
+    const facts = [
+      // 🧠 Tips & Tech Facts
+      "Did you know? The first computer 'bug' was an actual insect stuck in a relay!",
+      "Tip: Organize your files with clear names to make analysis easier.",
+      "Fun fact: The term 'byte' was coined in 1956 by Werner Buchholz.",
+      "Tip: PDFs are great for sharing documents securely across platforms.",
+      "Did you know? The first hard drive could only store 5MB of data!",
+      "Tip: Keep your files under 10MB for faster uploads.",
+      "Fun fact: The internet processes billions of searches daily!",
+      "Tip: Double-check file formats to ensure compatibility with our system.",
+      // 😂 Fun Clean Jokes
+      "Why do Java developers wear glasses? Because they don't see sharp! 🤓",
+      "Why did the chatbot get promoted? Because it always had the right *response*! 💼",
+      "I tried to catch some fog earlier... I mist! 🌫️",
+      "Why don’t scientists trust atoms? Because they make up everything! ⚛️",
+      "What’s a computer’s least favorite food? Spam. 🥫",
+      "Why was the math book sad? It had too many problems. 😔",
+      "Why did the PowerPoint presentation cross the road? To get to the next slide. 👉",
+      "What do you call 8 hobbits? A hobbyte. 🧝‍♂️",
+      "Did you hear about the AI that became a poet? It had *natural language* talent! 📝",
+      "I told my boss I needed a raise because my code compiles on the first try. He said, 'That's suspicious.' 🧑‍💻"
+    ];
+
+    let factInterval = null;
+
+    toggleBtn.addEventListener('click', () => {
+      chatbot.style.display = chatbot.style.display === 'flex' ? 'none' : 'flex';
+      if (chatbot.style.display === 'flex') {
+        fileInput.focus();
+      }
+    });
+    closeBtn.addEventListener('click', () => chatbot.style.display = 'none');
+
+    fileInput.addEventListener('change', uploadFiles);
+
+    function appendMessage(text, type = 'bot', id = null) {
+      const msg = document.createElement('div');
+      msg.className = `message ${type}`;
+      msg.setAttribute('aria-label', `${type === 'bot' ? 'Chatbot' : 'User'} message`);
+      if (id) msg.id = id;
+      msg.innerHTML = `
+        <div class="avatar ${type}" aria-hidden="true" title="${type === 'bot' ? 'Chatbot' : 'User'} icon">${type === 'bot' ? '🤖' : '👤'}</div>
+        <div class="message-content ${type}">${text}</div>
+      `;
+      messagesContainer.appendChild(msg);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function showTyping() {
+      const typing = document.createElement('div');
+      typing.className = 'typing';
+      typing.id = 'typing-indicator';
+      typing.innerHTML = `
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      `;
+      messagesContainer.appendChild(typing);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      function showRandomFact() {
+        const currentFact = document.getElementById('fact-message');
+        if (currentFact) currentFact.remove();
+        const randomFact = facts[Math.floor(Math.random() * facts.length)];
+        appendMessage(`💡 ${randomFact}`, 'bot', 'fact-message');
+      }
+      showRandomFact();
+      factInterval = setInterval(showRandomFact, 5500);
+    }
+
+    function hideTyping() {
+      const typing = document.getElementById('typing-indicator');
+      if (typing) typing.remove();
+      const fact = document.getElementById('fact-message');
+      if (fact) fact.remove();
+      if (factInterval) {
+        clearInterval(factInterval);
+        factInterval = null;
+      }
+    }
+
+    function parseLink(link) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(link, 'text/html');
+      const anchor = doc.querySelector('a');
+      if (anchor) {
+        return {
+          text: anchor.textContent,
+          url: anchor.getAttribute('href')
+        };
+      }
+      return { text: link, url: '#' };
+    }
+
+    async function uploadFiles() {
+      const files = Array.from(fileInput.files);
+      if (!files.length) return;
+
+      const fileNames = files.map(file => `<strong>${file.name}</strong>`).join(', ');
+      appendMessage(`📁 Uploading: ${fileNames}...`, 'user');
+      showTyping();
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+
+          if (result.error) {
+            appendMessage(`⚠️ Oops, something went wrong with <strong>${file.name}</strong>:<br><em>${result.error}</em>`, 'bot');
+            continue;
+          }
+
+          const pastPerformanceLinks = (result.past_performance_links || []).length
+            ? `<br><strong>Past Performance Links:</strong><ul>${result.past_performance_links.map(link => {
+                const { text, url } = parseLink(link);
+                return `<li>• ${text}: <a href="${url}" target="_blank" class="underline">Link</a></li>`;
+              }).join('')}</ul>`
+            : '';
+
+          if (!pastPerformanceLinks) {
+            appendMessage(`✅ I've processed <strong>${file.name}</strong>, but couldn’t find any related links.`, 'bot');
+          } else {
+            appendMessage(
+              `✅ I’ve finished reviewing <strong>${file.name}</strong>.${pastPerformanceLinks}`,
+              'bot'
+            );
+          }
+
+        } catch (err) {
+          appendMessage(`❌ Upload failed for <strong>${file.name}</strong>: ${err.message}`, 'bot');
+        }
+      }
+
+      hideTyping();
+      fileInput.value = '';
+    }
+  </script>
+
+</body>
+</html>
