@@ -389,7 +389,7 @@
         formData.append('file', file);
 
         try {
-          const response = await fetch('/upload', {
+          const response = await fetch('https://sarabot-back.onrender.com/upload', {
             method: 'POST',
             body: formData
           });
@@ -428,4 +428,5 @@
   </script>
 
 </body>
+
 </html>
