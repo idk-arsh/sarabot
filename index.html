@@ -17,10 +17,9 @@
       position: fixed;
       bottom: 80px;
       right: 30px;
-      width: 350px;
-      max-height: 500px;
+      /* Remove fixed width, rely on min/max and flex */
       min-width: 250px;
-      max-width: 600px;
+      max-width: 90vw; /* Limit to viewport width */
       min-height: 300px;
       max-height: 80vh;
       display: none;
@@ -45,7 +44,7 @@
 
     .chat-body {
       flex: 1;
-      height:400px;
+      height: 400px; /* Keep fixed height for now, adjust if needed */
       padding: 1rem;
       overflow-y: auto;
       overflow-x: hidden;
@@ -59,13 +58,10 @@
       margin-bottom: 10px;
     }
 
-    .message.bot {
-      max-width: calc(80% - 42px);
-    }
 
     .message.user {
       flex-direction: row-reverse;
-      max-width: calc(80% - 42px);
+      max-width: calc(80% - 42px); /* Keep for user messages if desired */
       margin-left: auto;
     }
 
@@ -77,8 +73,12 @@
       box-shadow: 0 3px 8px rgba(124, 58, 237, 0.2);
       position: relative;
       font-size: 0.875rem;
+      /* Remove max-width, use min-width to ensure readability */
+      min-width: 150px; /* Minimum width for readability */
       word-break: break-word;
       overflow-wrap: break-word;
+      /* Add max-width relative to parent for responsiveness */
+      max-width: 100%; /* Allow full width of chatbox */
     }
 
     .message-content.user {
@@ -112,6 +112,13 @@
 
     .avatar.user {
       background-color: #6b7280;
+    }
+
+    .avatar.user img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%; /* Maintain circular shape */
+      object-fit: cover; /* Ensure image fills the avatar area */
     }
 
     .message-content.bot.shimmer::before {
@@ -323,7 +330,7 @@
       msg.setAttribute('aria-label', `${type === 'bot' ? 'Chatbot' : 'User'} message`);
       if (id) msg.id = id;
       msg.innerHTML = `
-        <div class="avatar ${type}" aria-hidden="true" title="${type === 'bot' ? 'Chatbot' : 'User'} icon">${type === 'bot' ? '🤖' : '👤'}</div>
+        <div class="avatar ${type}" aria-hidden="true" title="${type === 'bot' ? 'Chatbot' : 'User'} icon">${type === 'bot' ? '🤖' : '<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDVru5m1pn1dZkIoAJab_4ATliB2UBKzc_WSYOZDAr9W34vLuPFiie50Q62nQUEyjaVu0&usqp=CAU" alt="Me Homie">'}</div>
         <div class="message-content ${type}">${text}</div>
       `;
       messagesContainer.appendChild(msg);
@@ -389,7 +396,7 @@
         formData.append('file', file);
 
         try {
-          const response = await fetch('https://sarabot-back.onrender.com/upload', {
+          const response = await fetch('/upload', {
             method: 'POST',
             body: formData
           });
@@ -402,11 +409,17 @@
           }
 
           const pastPerformanceLinks = (result.past_performance_links || []).length
-            ? `<br><strong>Past Performance Links:</strong><ul>${result.past_performance_links.map(link => {
-                const { text, url } = parseLink(link);
-                return `<li>• ${text}: <a href="${url}" target="_blank" class="underline">Link</a></li>`;
-              }).join('')}</ul>`
+            ? `<br><strong>Past Performance Matches:</strong><ul>${
+                result.past_performance_links.map(pp => {
+                  return `
+                    <li class="mb-2">
+                      • <strong>${pp.Name}</strong>
+                      <a href="${pp.link}" target="_blank" class="underline">(View)</a>
+                    </li>`;
+                }).join('')
+              }</ul>`
             : '';
+
 
           if (!pastPerformanceLinks) {
             appendMessage(`✅ I've processed <strong>${file.name}</strong>, but couldn’t find any related links.`, 'bot');
@@ -428,7 +441,4 @@
   </script>
 
 </body>
-
 </html>
-
-
