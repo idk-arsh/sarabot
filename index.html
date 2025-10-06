@@ -383,62 +383,62 @@
       return { text: link, url: '#' };
     }
 
-    async function uploadFiles() {
-      const files = Array.from(fileInput.files);
-      if (!files.length) return;
+async function uploadFiles() {
+    const files = Array.from(fileInput.files);
+    if (!files.length) return;
 
-      const fileNames = files.map(file => `<strong>${file.name}</strong>`).join(', ');
-      appendMessage(`📁 Uploading: ${fileNames}...`, 'user');
-      showTyping();
+    const fileNames = files.map(file => `<strong>${file.name}</strong>`).join(', ');
+    appendMessage(`📁 Uploading: ${fileNames}...`, 'user');
+    showTyping();
 
-      for (const file of files) {
+    for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-          const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData
-          });
+            const response = await fetch('http://localhost:5000/upload', {  // Update to absolute URL
+                method: 'POST',
+                body: formData
+            });
 
-          const result = await response.json();
+            const result = await response.json();
 
-          if (result.error) {
-            appendMessage(`⚠️ Oops, something went wrong with <strong>${file.name}</strong>:<br><em>${result.error}</em>`, 'bot');
-            continue;
-          }
+            if (result.error) {
+                appendMessage(`⚠️ Oops, something went wrong with <strong>${file.name}</strong>:<br><em>${result.error}</em>`, 'bot');
+                continue;
+            }
 
-          const pastPerformanceLinks = (result.past_performance_links || []).length
-            ? `<br><strong>Past Performance Matches:</strong><ul>${
-                result.past_performance_links.map(pp => {
-                  return `
-                    <li class="mb-2">
-                      • <strong>${pp.Name}</strong>
-                      <a href="${pp.link}" target="_blank" class="underline">(View)</a>
-                    </li>`;
-                }).join('')
-              }</ul>`
-            : '';
+            const pastPerformanceLinks = (result.past_performance_links || []).length
+                ? `<br><strong>Past Performance Matches:</strong><ul>${
+                    result.past_performance_links.map(pp => {
+                        return `
+                          <li class="mb-2">
+                            • <strong>${pp.Name}</strong>
+                            <a href="${pp.link}" target="_blank" class="underline">(View)</a>
+                          </li>`;
+                    }).join('')
+                  }</ul>`
+                : '';
 
-
-          if (!pastPerformanceLinks) {
-            appendMessage(`✅ I've processed <strong>${file.name}</strong>, but couldn’t find any related links.`, 'bot');
-          } else {
-            appendMessage(
-              `✅ I’ve finished reviewing <strong>${file.name}</strong>.${pastPerformanceLinks}`,
-              'bot'
-            );
-          }
+            if (!pastPerformanceLinks) {
+                appendMessage(`✅ I've processed <strong>${file.name}</strong>, but couldn’t find any related links.`, 'bot');
+            } else {
+                appendMessage(
+                    `✅ I’ve finished reviewing <strong>${file.name}</strong>.${pastPerformanceLinks}`,
+                    'bot'
+                );
+            }
 
         } catch (err) {
-          appendMessage(`❌ Upload failed for <strong>${file.name}</strong>: ${err.message}`, 'bot');
+            appendMessage(`❌ Upload failed for <strong>${file.name}</strong>: ${err.message}`, 'bot');
         }
-      }
-
-      hideTyping();
-      fileInput.value = '';
     }
+
+    hideTyping();
+    fileInput.value = '';
+}
   </script>
 
 </body>
 </html>
+
