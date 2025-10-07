@@ -170,6 +170,12 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       z-index: 998;
     }
+    .agency-name {
+    font-size: 1.25rem; /* Increase font size for agency names */
+    font-weight: 700;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+    }
 
     .typing {
       display: flex;
@@ -265,7 +271,7 @@
     <div class="chat-body" id="chat-messages">
       <div class="message bot" aria-label="Chatbot message">
         <div class="avatar bot" aria-hidden="true" title="Chatbot icon">🤖</div>
-        <div class="message-content bot shimmer">
+        <div class="message-content bot">
           Hey there<br />How can I help you today?
         </div>
       </div>
@@ -383,66 +389,71 @@
       return { text: link, url: '#' };
     }
 
-async function uploadFiles() {
-    const files = Array.from(fileInput.files);
-    if (!files.length) return;
+    async function uploadFiles() {
+      const files = Array.from(fileInput.files);
+      if (!files.length) return;
 
-    const fileNames = files.map(file => `<strong>${file.name}</strong>`).join(', ');
-    appendMessage(`📁 Uploading: ${fileNames}...`, 'user');
-    showTyping();
+      const fileNames = files.map(file => `<strong>${file.name}</strong>`).join(', ');
+      appendMessage(`📁 Uploading: ${fileNames}...`, 'user');
+      showTyping();
 
-    for (const file of files) {
+      for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-            const response = await fetch('https://common-cougars-play.loca.lt/upload', {  // Update to absolute URL
-                method: 'POST',
-                body: formData
+          const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+
+          if (result.error) {
+            appendMessage(`⚠️ Oops, something went wrong with <strong>${file.name}</strong>:<br><em>${result.error}</em>`, 'bot');
+            continue;
+          }
+
+          const pastPerformanceLinks = result.past_performance_links || [];
+          if (!pastPerformanceLinks.length) {
+            appendMessage(`✅ I've processed <strong>${file.name}</strong>, but couldn’t find any related links.`, 'bot');
+            continue;
+          }
+
+          // Group links by agency
+          const linksByAgency = pastPerformanceLinks.reduce((acc, pp) => {
+            const agency = pp.agency || 'Unknown Agency';
+            if (!acc[agency]) {
+              acc[agency] = [];
+            }
+            acc[agency].push(pp);
+            return acc;
+          }, {});
+
+          // Generate formatted output
+          let output = `✅ I’ve finished reviewing <strong>${file.name}</strong>.<br>`;
+          for (const [agency, links] of Object.entries(linksByAgency)) {
+            output += `<strong class="agency-name">${agency}</strong><ul>`;
+            links.forEach(pp => {
+              output += `
+                <li class="mb-2">
+                  • <strong>${pp.Name}</strong> <a href="${pp.link}" target="_blank" class="underline">(View)</a>
+                </li>`;
             });
+            output += `</ul>`;
+          }
 
-            const result = await response.json();
-
-            if (result.error) {
-                appendMessage(`⚠️ Oops, something went wrong with <strong>${file.name}</strong>:<br><em>${result.error}</em>`, 'bot');
-                continue;
-            }
-
-            const pastPerformanceLinks = (result.past_performance_links || []).length
-                ? `<br><strong>Past Performance Matches:</strong><ul>${
-                    result.past_performance_links.map(pp => {
-                        return `
-                          <li class="mb-2">
-                            • <strong>${pp.Name}</strong>
-                            <a href="${pp.link}" target="_blank" class="underline">(View)</a>
-                          </li>`;
-                    }).join('')
-                  }</ul>`
-                : '';
-
-            if (!pastPerformanceLinks) {
-                appendMessage(`✅ I've processed <strong>${file.name}</strong>, but couldn’t find any related links.`, 'bot');
-            } else {
-                appendMessage(
-                    `✅ I’ve finished reviewing <strong>${file.name}</strong>.${pastPerformanceLinks}`,
-                    'bot'
-                );
-            }
+          appendMessage(output, 'bot');
 
         } catch (err) {
-            appendMessage(`❌ Upload failed for <strong>${file.name}</strong>: ${err.message}`, 'bot');
+          appendMessage(`❌ Upload failed for <strong>${file.name}</strong>: ${err.message}`, 'bot');
         }
-    }
+      }
 
-    hideTyping();
-    fileInput.value = '';
-}
+      hideTyping();
+      fileInput.value = '';
+    }
   </script>
 
 </body>
 </html>
-
-
-
-
-
